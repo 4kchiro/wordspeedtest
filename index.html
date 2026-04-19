@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>단어 퀴즈</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: #e8e6e0;
+    --text: #1a1917;
+    --text-muted: #8a8780;
+    --accent: #3d6b4f;
+    --accent-light: #eaf2ed;
+    --danger: #c0392b;
+    --danger-light: #fdf0ee;
+    --timer-full: #3d6b4f;
+    --timer-mid: #e67e22;
+    --timer-low: #c0392b;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .screen { display: none; width: 100%; max-width: 560px; }
+  .screen.active { display: block; }
+
+  /* ── START ── */
+  .start-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 48px 40px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .start-card h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .start-card > p { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 36px; }
+
+  .input-group { text-align: left; margin-bottom: 12px; }
+  .input-group label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; letter-spacing: 0.3px; }
+  .input-group input[type="number"] {
+    width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: 1rem; font-family: 'DM Mono', monospace; color: var(--text); background: var(--bg);
+    outline: none; transition: border-color 0.15s;
+  }
+  .input-group input[type="number"]:focus { border-color: var(--accent); }
+
+  .hint { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 28px; text-align: left; }
+
+  .btn-start {
+    width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; font-size: 0.95rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-start:hover { opacity: 0.9; }
+  .btn-start:active { transform: scale(0.99); }
+
+  /* ── QUIZ ── */
+  .quiz-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .progress-text { font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+
+  .btn-pause {
+    padding: 8px 18px; background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 0.85rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text); cursor: pointer; transition: background 0.15s, border-color 0.15s; min-width: 80px;
+  }
+  .btn-pause:hover { background: var(--border); }
+  .btn-pause.paused { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .timer-bar-wrap { height: 5px; background: var(--border); border-radius: 99px; margin-bottom: 24px; overflow: hidden; }
+  .timer-bar { height: 100%; border-radius: 99px; transition: width 0.1s linear, background 0.3s; background: var(--timer-full); }
+
+  .word-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 40px 36px 32px; box-shadow: var(--shadow); margin-bottom: 16px; min-height: 180px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  }
+  .word-label { font-size: 0.75rem; font-weight: 500; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+  .word-display { font-family: 'DM Mono', monospace; font-size: 2rem; font-weight: 500; letter-spacing: -0.5px; line-height: 1.2; }
+  .timer-count { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--text-muted); margin-top: 16px; }
+
+  .answer-wrap { display: flex; gap: 10px; }
+  .answer-input {
+    flex: 1; padding: 13px 16px; border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: 0.95rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text);
+    background: var(--surface); outline: none; transition: border-color 0.15s;
+  }
+  .answer-input:focus { border-color: var(--accent); }
+  .answer-input:disabled { background: var(--bg); color: var(--text-muted); }
+
+  .btn-next {
+    padding: 13px 20px; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; font-size: 0.85rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
+  }
+  .btn-next:hover { opacity: 0.88; }
+
+  /* ── PAUSE OVERLAY ── */
+  .pause-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(247,246,243,0.88);
+    backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px; text-align: center;
+  }
+  .pause-overlay.show { display: flex; }
+  .pause-overlay h2 { font-size: 1.4rem; font-weight: 700; }
+  .pause-overlay p { color: var(--text-muted); font-size: 0.875rem; }
+  .btn-resume {
+    padding: 13px 32px; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; font-size: 0.95rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: opacity 0.15s; margin-top: 8px;
+  }
+  .btn-resume:hover { opacity: 0.88; }
+
+  /* ── RESULT ── */
+  .result-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 40px; box-shadow: var(--shadow);
+  }
+
+  .result-summary { text-align: center; margin-bottom: 32px; }
+  .result-summary h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; }
+  .score-display { display: inline-flex; align-items: baseline; gap: 4px; font-family: 'DM Mono', monospace; margin-bottom: 10px; }
+  .score-num { font-size: 3rem; font-weight: 500; color: var(--accent); line-height: 1; }
+  .score-total { font-size: 1.2rem; color: var(--text-muted); }
+  .score-pct { font-family: 'DM Mono', monospace; font-size: 0.9rem; color: var(--text-muted); }
+
+  /* Tabs */
+  .tab-bar { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 16px; }
+  .tab-btn {
+    padding: 9px 20px; border: none; background: none; font-size: 0.85rem; font-weight: 600;
+    font-family: 'Noto Sans KR', sans-serif; color: var(--text-muted); cursor: pointer;
+    border-bottom: 2.5px solid transparent; margin-bottom: -2px; transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.tab-wrong.active { color: var(--danger); border-bottom-color: var(--danger); }
+  .tab-btn.tab-correct.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-panel { display: none; max-height: 380px; overflow-y: auto; margin-bottom: 24px; }
+  .tab-panel.active { display: block; }
+
+  .result-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+
+  .result-item { padding: 10px 12px; border-radius: 7px; font-size: 0.82rem; line-height: 1.6; }
+  .result-item.wrong-item { background: var(--danger-light); }
+  .result-item.correct-item { background: var(--accent-light); }
+
+  .item-word { font-family: 'DM Mono', monospace; font-weight: 500; display: block; margin-bottom: 4px; }
+  .item-row { display: flex; align-items: baseline; gap: 6px; font-size: 0.76rem; }
+  .item-label { color: var(--text-muted); flex-shrink: 0; min-width: 34px; }
+  .item-correct { color: var(--accent); font-weight: 500; }
+  .item-mine { color: var(--danger); }
+  .item-skipped { color: var(--text-muted); font-style: italic; }
+  .item-meaning { color: var(--text-muted); font-size: 0.76rem; }
+
+  .empty-msg { font-size: 0.82rem; color: var(--text-muted); font-style: italic; padding: 6px 0; }
+
+  .btn-restart {
+    width: 100%; padding: 13px; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; font-size: 0.9rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn-restart:hover { opacity: 0.88; }
+
+  @media (max-width: 480px) {
+    .start-card { padding: 36px 24px; }
+    .word-card { padding: 32px 24px 28px; }
+    .word-display { font-size: 1.6rem; }
+    .result-card { padding: 28px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── START SCREEN ── -->
+<div id="startScreen" class="screen active">
+  <div class="start-card">
+    <h1>단어 퀴즈</h1>
+    <p>단어를 보고 뜻을 입력하세요</p>
+
+    <div class="input-group">
+      <label>풀 문제 수</label>
+      <input type="number" id="countInput" min="1" max="600" value="100" placeholder="예: 100">
+    </div>
+    <div class="input-group">
+      <label>문제당 제한 시간 (초)</label>
+      <input type="number" id="timerInput" min="1" max="60" value="5" placeholder="예: 5">
+    </div>
+    <p class="hint">전체 단어 수: <span id="totalCount">0</span>개</p>
+
+    <button class="btn-start" onclick="startQuiz()">시작하기</button>
+  </div>
+</div>
+
+<!-- ── QUIZ SCREEN ── -->
+<div id="quizScreen" class="screen">
+  <div class="quiz-header">
+    <span class="progress-text" id="progressText">1 / 100</span>
+    <button class="btn-pause" id="pauseBtn" onclick="togglePause()">일시정지</button>
+  </div>
+
+  <div class="timer-bar-wrap">
+    <div class="timer-bar" id="timerBar"></div>
+  </div>
+
+  <div class="word-card">
+    <div class="word-label">단어</div>
+    <div class="word-display" id="wordDisplay">—</div>
+    <div class="timer-count" id="timerCount">5초</div>
+  </div>
+
+  <div class="answer-wrap">
+    <input type="text" class="answer-input" id="answerInput" placeholder="뜻을 입력하세요" autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="btn-next" onclick="submitAnswer()">다음 →</button>
+  </div>
+</div>
+
+<!-- ── RESULT SCREEN ── -->
+<div id="resultScreen" class="screen">
+  <div class="result-card">
+    <div class="result-summary">
+      <h2>퀴즈 완료!</h2>
+      <div class="score-display">
+        <span class="score-num" id="scoreNum">0</span>
+        <span class="score-total" id="scoreTotal">/ 100</span>
+      </div>
+      <div class="score-pct" id="scorePct">정답률 0%</div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn tab-wrong active" id="tabWrongBtn" onclick="switchTab('wrong')">✗ 오답 <span id="wrongCount"></span></button>
+      <button class="tab-btn tab-correct" id="tabCorrectBtn" onclick="switchTab('correct')">✓ 정답 <span id="correctCount"></span></button>
+    </div>
+
+    <div class="tab-panel active" id="panelWrong">
+      <ul class="result-list" id="wrongList"></ul>
+    </div>
+    <div class="tab-panel" id="panelCorrect">
+      <ul class="result-list" id="correctList"></ul>
+    </div>
+
+    <button class="btn-restart" onclick="restart()">다시 시작</button>
+  </div>
+</div>
+
+<!-- ── PAUSE OVERLAY ── -->
+<div class="pause-overlay" id="pauseOverlay">
+  <h2>⏸ 일시정지</h2>
+  <p>준비되면 다시 시작하세요</p>
+  <button class="btn-resume" onclick="togglePause()">계속하기</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  📌 여기에 단어 데이터를 붙여넣으세요
+//  형식: ["단어", "뜻"] 쌍의 배열
+//
+//  구글 스프레드시트 C열 함수 (C2에 입력 후 아래로 드래그):
+//  ="[""" & A2 & """, """ & B2 & """],"
+//  → 결과 전체 복사 후 아래 WORD_DATA 안에 붙여넣기
+// ════════════════════════════════════════════════════
+const WORD_DATA = [
+  // 아래 예시를 지우고 실제 데이터를 붙여넣으세요
+  ["価格", "가격"],
+["家具", "가구"],
+["家内", "가내"],
+["間接", "간접"],
+["感覚", "감각"],
+["感動", "감동"],
+["感想", "감상"],
+["感心", "감심"],
+["感情", "감정"],
+["講義", "강의"],
+["強調", "강조"],
+["強化", "강화"],
+["個人", "개인"],
+["乾杯", "건배"],
+["見物", "견물"],
+["結果", "결과"],
+["結局", "결국"],
+["欠席", "결석"],
+["決心", "결심"],
+["欠点", "결점"],
+["決定", "결정"],
+["決行", "결행"],
+["結婚", "결혼"],
+["経営", "경영"],
+["警察", "경찰"],
+["経験", "경험"],
+["計算", "계산"],
+["計画", "계화"],
+["高校", "고교"],
+["高級", "고급"],
+["空気", "공기"],
+["工事", "공사"],
+["空席", "공석"],
+["工業", "공업"],
+["公園", "공원"],
+["公立", "공입"],
+["工場", "공장"],
+["共通", "공통"],
+["工学", "공학"],
+["科目", "과목"],
+["科学", "과학"],
+["関係", "관계"],
+["関心", "관심"],
+["交番", "교번"],
+["教授", "교수"],
+["教室", "교실"],
+["教育", "교육"],
+["校長", "교장"],
+["交際", "교제"],
+["交通", "교통"],
+["教会", "교회"],
+["区間", "구간"],
+["区別", "구별"],
+["国内", "국내"],
+["国民", "국민"],
+["国産", "국산"],
+["国語", "국어"],
+["国立", "국입"],
+["国際", "국제"],
+["国会", "국회"],
+["帰国", "귀국"],
+["帰宅", "귀택"],
+["勤務", "근무"],
+["近所", "근소"],
+["近視", "근시"],
+["今度", "금도"],
+["今晩", "금만"],
+["今夜", "금야"],
+["禁煙", "금연"],
+["今月", "금월"],
+["今日", "금일"],
+["今週", "금주"],
+["禁止", "금지"],
+["今回", "금회"],
+["今後", "금후"],
+["給食", "급식"],
+["給与", "급여"],
+["給料", "급요"],
+["急行", "급행"],
+["期間", "기간"],
+["期待", "기대"],
+["記録", "기록"],
+["気分", "기분"],
+["気楽", "기악"],
+["記念", "기염"],
+["気温", "기온"],
+["記入", "기입"],
+["記者", "기자"],
+["気体", "기체"],
+["機会", "기회"],
+["男性", "남성"],
+["男子", "남자"],
+["内科", "내과"],
+["来年", "내년"],
+["内部", "내부"],
+["内線", "내선"],
+["来月", "내월"],
+["来週", "내주"],
+["冷房", "냉방"],
+["年代", "년대"],
+["能力", "능력"],
+["多分", "다분"],
+["多少", "다소"],
+["多数", "다수"],
+["断水", "단수"],
+["代金", "대금"],
+["代理", "대리"],
+["大変", "대변"],
+["大夫", "대부"],
+["大事", "대사"],
+["大量", "대양"],
+["大体", "대체"],
+["代表", "대표"],
+["台風", "대풍"],
+["大学", "대학"],
+["大会", "대회"],
+["道具", "도구"],
+["道路", "도로"],
+["図面", "도면"],
+["都市", "도시"],
+["都合", "도합"],
+["独身", "독신"],
+["独立", "독입"],
+["動物", "동물"],
+["登場", "등장"],
+["路面", "노면"],
+["録音", "녹음"],
+["録画", "녹화"],
+["理科", "이과"],
+["理想", "이상"],
+["理由", "이유"],
+["理解", "이해"],
+["離婚", "이혼"],
+["満員", "만원"],
+["満点", "만점"],
+["満足", "만족"],
+["毎年", "매년"],
+["毎度", "매도"],
+["毎晩", "매만"],
+["毎日", "매일"],
+["売店", "매점"],
+["毎週", "매주"],
+["免税", "면세"],
+["面接", "면접"],
+["免許", "면허"],
+["面会", "면회"],
+["名人", "명인"],
+["名作", "명작"],
+["無理", "무리"],
+["無線", "무선"],
+["無視", "무시"],
+["無料", "무요"],
+["無地", "무지"],
+["無休", "무휴"],
+["文法", "문법"],
+["文書", "문서"],
+["問題", "문제"],
+["文学", "문학"],
+["文化", "문화"],
+["物価", "물가"],
+["物理", "물리"],
+["美術", "미술"],
+["美人", "미인"],
+["民間", "민간"],
+["反対", "반대"],
+["半分", "반분"],
+["半日", "반일"],
+["発見", "발견"],
+["発達", "발달"],
+["発売", "발매"],
+["発明", "발명"],
+["発想", "발상"],
+["発音", "발음"],
+["発展", "발전"],
+["発電", "발전"],
+["発車", "발차"],
+["発表", "발표"],
+["方面", "방면"],
+["方方", "방방"],
+["方法", "방법"],
+["配達", "배달"],
+["百点", "백점"],
+["番線", "번선"],
+["番号", "번호"],
+["変化", "변화"],
+["病気", "병기"],
+["病院", "병원"],
+["報告", "보고"],
+["歩道", "보도"],
+["保存", "보존"],
+["復習", "복습"],
+["本気", "본기"],
+["本当", "본당"],
+["本部", "본부"],
+["本社", "본사"],
+["本屋", "본옥"],
+["本人", "본인"],
+["本日", "본일"],
+["本店", "본점"],
+["夫婦", "부부"],
+["部分", "부분"],
+["部長", "부장"],
+["部品", "부품"],
+["部下", "부하"],
+["分数", "분수"],
+["不断", "불단"],
+["不満", "불만"],
+["不足", "불족"],
+["不便", "불편"],
+["費用", "비용"],
+["飛行", "비행"],
+["事件", "사건"],
+["死亡", "사망"],
+["事務", "사무"],
+["社説", "사설"],
+["社長", "사장"],
+["事前", "사전"],
+["事情", "사정"],
+["司会", "사회"],
+["社会", "사회"],
+["死後", "사후"],
+["事後", "사후"],
+["算数", "산수"],
+["産業", "산업"],
+["上級", "상급"],
+["相談", "상담"],
+["相当", "상당"],
+["商売", "상매"],
+["上司", "상사"],
+["上手", "상수"],
+["上旬", "상순"],
+["商人", "상인"],
+["商店", "상점"],
+["商品", "상품"],
+["上下", "상하"],
+["生産", "생산"],
+["生活", "생활"],
+["書類", "서유"],
+["書店", "서점"],
+["夕飯", "석반"],
+["夕食", "석식"],
+["夕日", "석일"],
+["線路", "선로"],
+["先生", "선생"],
+["選手", "선수"],
+["先月", "선월"],
+["先日", "선일"],
+["先週", "선주"],
+["説明", "설명"],
+["性格", "성격"],
+["成功", "성공"],
+["成人", "성인"],
+["成長", "성장"],
+["性質", "성질"],
+["世界", "세계"],
+["税金", "세금"],
+["洗濯", "세탁"],
+["世話", "세화"],
+["少女", "소녀"],
+["少年", "소년"],
+["消防", "소방"],
+["消費", "소비"],
+["小説", "소설"],
+["少少", "소소"],
+["掃除", "소제"],
+["消化", "소화"],
+["速達", "속달"],
+["速度", "속도"],
+["送金", "송금"],
+["送信", "송신"],
+["送料", "송요"],
+["水道", "수도"],
+["修理", "수리"],
+["手術", "수술"],
+["数式", "수식"],
+["受信", "수신"],
+["授業", "수업"],
+["収入", "수입"],
+["輸入", "수입"],
+["輸出", "수출"],
+["数学", "수학"],
+["受験", "수험"],
+["宿題", "숙제"],
+["乗客", "승객"],
+["乗車", "승차"],
+["時刻", "시각"],
+["時間", "시간"],
+["市内", "시내"],
+["時代", "시대"],
+["市民", "시민"],
+["時速", "시속"],
+["試合", "시합"],
+["試験", "시험"],
+["食器", "식기"],
+["食費", "식비"],
+["食事", "식사"],
+["食品", "식품"],
+["食後", "식후"],
+["新年", "신년"],
+["身長", "신장"],
+["申請", "신청"],
+["信号", "신호"],
+["室内", "실내"],
+["実力", "실력"],
+["失業", "실업"],
+["失礼", "실예"],
+["実行", "실행"],
+["実現", "실현"],
+["心理", "심리"],
+["心配", "심배"],
+["楽器", "악기"],
+["案内", "안내"],
+["安心", "안심"],
+["安易", "안이"],
+["安全", "안전"],
+["夜間", "야간"],
+["両方", "양방"],
+["洋服", "양복"],
+["両親", "양친"],
+["御礼", "어예"],
+["語学", "어학"],
+["言語", "언어"],
+["旅館", "여관"],
+["女性", "여성"],
+["女子", "여자"],
+["旅行", "여행"],
+["駅員", "역원"],
+["年間", "연간"],
+["研究", "연구"],
+["年月", "연월"],
+["年中", "연중"],
+["連休", "연휴"],
+["熱心", "열심"],
+["熱中", "열중"],
+["英国", "영국"],
+["英文", "영문"],
+["英語", "영어"],
+["営業", "영업"],
+["予防", "예방"],
+["予報", "예보"],
+["予算", "예산"],
+["予想", "예상"],
+["予習", "예습"],
+["予約", "예약"],
+["予定", "예정"],
+["午前", "오전"],
+["午後", "오후"],
+["屋内", "옥내"],
+["屋上", "옥상"],
+["屋外", "옥외"],
+["温度", "온도"],
+["温室", "온실"],
+["完了", "완료"],
+["完成", "완성"],
+["完全", "완전"],
+["外国", "외국"],
+["外部", "외부"],
+["外食", "외식"],
+["外出", "외출"],
+["要求", "요구"],
+["料金", "요금"],
+["料理", "요리"],
+["用件", "용건"],
+["用事", "용사"],
+["用意", "용의"],
+["郵送", "우송"],
+["友人", "우인"],
+["友情", "우정"],
+["郵便", "우편"],
+["運動", "운동"],
+["運転", "운전"],
+["遠足", "원족"],
+["違反", "위반"],
+["留学", "유학"],
+["流行", "유행"],
+["育児", "육아"],
+["音楽", "음악"],
+["意見", "의견"],
+["意味", "의미"],
+["意義", "의의"],
+["医者", "의자"],
+["医学", "의학"],
+["利口", "이구"],
+["以内", "이내"],
+["以上", "이상"],
+["以外", "이외"],
+["利用", "이용"],
+["以前", "이전"],
+["以下", "이하"],
+["以後", "이후"],
+["人間", "인간"],
+["人口", "인구"],
+["人気", "인기"],
+["人生", "인생"],
+["人参", "인참"],
+["日記", "일기"],
+["一倍", "일배"],
+["一部", "일부"],
+["日常", "일상"],
+["一生", "일생"],
+["日時", "일시"],
+["日中", "일중"],
+["入力", "입력"],
+["入社", "입사"],
+["入浴", "입욕"],
+["入院", "입원"],
+["入場", "입장"],
+["入学", "입학"],
+["自動", "자동"],
+["自分", "자분"],
+["自習", "자습"],
+["自信", "자신"],
+["自由", "자유"],
+["作家", "작가"],
+["作文", "작문"],
+["作業", "작업"],
+["作者", "작자"],
+["作品", "작품"],
+["残業", "잔업"],
+["残念", "잔염"],
+["長男", "장남"],
+["場面", "장면"],
+["長所", "장소"],
+["場所", "장소"],
+["長女", "장여"],
+["再生", "재생"],
+["低下", "저하"],
+["電球", "전구"],
+["全国", "전국"],
+["電気", "전기"],
+["専門", "전문"],
+["前半", "전반"],
+["電報", "전보"],
+["全部", "전부"],
+["展示", "전시"],
+["全身", "전신"],
+["伝言", "전언"],
+["全員", "전원"],
+["電車", "전차"],
+["全体", "전체"],
+["電話", "전화"],
+["節約", "절약"],
+["店員", "점원"],
+["定期", "정기"],
+["整理", "정리"],
+["正面", "정면"],
+["正門", "정문"],
+["情報", "정보"],
+["正常", "정상"],
+["正式", "정식"],
+["正午", "정오"],
+["定員", "정원"],
+["正月", "정월"],
+["停電", "정전"],
+["正座", "정좌"],
+["正直", "정직"],
+["停車", "정차"],
+["正確", "정확"],
+["題名", "제명"],
+["提案", "제안"],
+["提出", "제출"],
+["調査", "조사"],
+["調子", "조자"],
+["調整", "조정"],
+["卒業", "졸업"],
+["座席", "좌석"],
+["週間", "주간"],
+["注目", "주목"],
+["注文", "주문"],
+["住民", "주민"],
+["主婦", "주부"],
+["住所", "주소"],
+["注意", "주의"],
+["主人", "주인"],
+["駐車", "주차"],
+["中間", "중간"],
+["中国", "중국"],
+["中級", "중급"],
+["中年", "중년"],
+["中旬", "중순"],
+["重視", "중시"],
+["中心", "중심"],
+["重要", "중요"],
+["中止", "중지"],
+["中学", "중학"],
+["地球", "지구"],
+["支度", "지도"],
+["地図", "지도"],
+["地理", "지리"],
+["地面", "지면"],
+["地名", "지명"],
+["地方", "지방"],
+["支社", "지사"],
+["指示", "지시"],
+["支店", "지점"],
+["指定", "지정"],
+["地下", "지하"],
+["直線", "직선"],
+["職業", "직업"],
+["職場", "직장"],
+["直前", "직전"],
+["直接", "직접"],
+["直通", "직통"],
+["直後", "직후"],
+["進歩", "진보"],
+["進学", "진학"],
+["質問", "질문"],
+["車道", "차도"],
+["天国", "천국"],
+["天気", "천기"],
+["鉄道", "철도"],
+["青年", "청년"],
+["体力", "체력"],
+["体温", "체온"],
+["体育", "체육"],
+["体重", "체중"],
+["初級", "초급"],
+["最高", "최고"],
+["最近", "최근"],
+["最低", "최저"],
+["最初", "최초"],
+["最後", "최후"],
+["出勤", "출근"],
+["出発", "출발"],
+["出席", "출석"],
+["出身", "출신"],
+["出場", "출장"],
+["出現", "출현"],
+["出血", "출혈"],
+["測量", "측양"],
+["測定", "측정"],
+["親類", "친류"],
+["親友", "친우"],
+["他界", "타계"],
+["誕生", "탄생"],
+["統計", "통계"],
+["通過", "통과"],
+["通勤", "통근"],
+["通信", "통신"],
+["通訳", "통역"],
+["通行", "통행"],
+["退院", "퇴원"],
+["退職", "퇴직"],
+["退学", "퇴학"],
+["特急", "특급"],
+["特売", "특매"],
+["特色", "특색"],
+["販売", "판매"],
+["便利", "편이"],
+["平気", "평기"],
+["平日", "평일"],
+["表面", "표면"],
+["表情", "표정"],
+["表現", "표현"],
+["筆記", "필기"],
+["何個", "하개"],
+["何年", "하년"],
+["何番", "하번"],
+["下水", "하수"],
+["下宿", "하숙"],
+["下旬", "하순"],
+["下品", "하품"],
+["何回", "하회"],
+["学校", "학교"],
+["学力", "학력"],
+["学問", "학문"],
+["学部", "학부"],
+["学費", "학비"],
+["学生", "학생"],
+["学習", "학습"],
+["学者", "학자"],
+["合格", "합격"],
+["合流", "합류"],
+["解決", "해결"],
+["解説", "해설"],
+["海外", "해외"],
+["行動", "행동"],
+["行事", "행사"],
+["並行", "행행"],
+["許可", "허가"],
+["現金", "현금"],
+["現代", "현대"],
+["現実", "현실"],
+["混乱", "혼난"],
+["混雑", "혼잡"],
+["紅茶", "홍차"],
+["画家", "화가"],
+["画面", "화면"],
+["火事", "화사"],
+["話題", "화제"],
+["化学", "화학"],
+["活気", "활기"],
+["活動", "활동"],
+["会館", "회관"],
+["会社", "회사"],
+["回収", "회수"],
+["会員", "회원"],
+["会長", "회장"],
+["会場", "회장"],
+["会合", "회합"],
+["会話", "회화"],
+["横断", "횡단"],
+["後半", "후반"],
+["休養", "휴양"],
+["休業", "휴업"],
+["休日", "휴일"],
+];
+// ════════════════════════════════════════════════════
+
+let TIMER_SEC = 5;
+let questions = [], current = 0, correctAnswers = [], wrongAnswers = [];
+let timerInterval = null, timeLeft = TIMER_SEC, isPaused = false, totalQ = 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('totalCount').textContent = WORD_DATA.length;
+  document.getElementById('answerInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitAnswer();
+  });
+  document.getElementById('countInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startQuiz();
+  });
+});
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz() {
+  const n = parseInt(document.getElementById('countInput').value);
+  if (!n || n < 1) { alert('문제 수를 입력해주세요.'); return; }
+  if (n > WORD_DATA.length) { alert(`단어 데이터가 ${WORD_DATA.length}개입니다. ${WORD_DATA.length} 이하로 입력해주세요.`); return; }
+  const t = parseInt(document.getElementById('timerInput').value);
+  if (!t || t < 1) { alert('제한 시간을 입력해주세요.'); return; }
+  TIMER_SEC = t;
+  totalQ = n;
+  questions = shuffle(WORD_DATA).slice(0, n);
+  current = 0; correctAnswers = []; wrongAnswers = [];
+  showScreen('quizScreen');
+  loadQuestion();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function loadQuestion() {
+  if (current >= totalQ) { endQuiz(); return; }
+  const [word] = questions[current];
+  document.getElementById('wordDisplay').textContent = word;
+  document.getElementById('answerInput').value = '';
+  document.getElementById('answerInput').disabled = false;
+  document.getElementById('answerInput').focus();
+  document.getElementById('progressText').textContent = `${current + 1} / ${totalQ}`;
+  startTimer();
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timeLeft = TIMER_SEC;
+  updateTimerUI();
+  timerInterval = setInterval(() => {
+    if (isPaused) return;
+    timeLeft -= 0.1;
+    if (timeLeft <= 0) {
+      timeLeft = 0; updateTimerUI(); clearInterval(timerInterval); recordAndNext('');
+    } else { updateTimerUI(); }
+  }, 100);
+}
+
+function updateTimerUI() {
+  const pct = (timeLeft / TIMER_SEC) * 100;
+  const bar = document.getElementById('timerBar');
+  bar.style.width = pct + '%';
+  if (pct > 60) bar.style.background = 'var(--timer-full)';
+  else if (pct > 30) bar.style.background = 'var(--timer-mid)';
+  else bar.style.background = 'var(--timer-low)';
+  document.getElementById('timerCount').textContent = Math.ceil(timeLeft) + '초';
+}
+
+function submitAnswer() {
+  if (isPaused) return;
+  clearInterval(timerInterval);
+  recordAndNext(document.getElementById('answerInput').value.trim());
+}
+
+function recordAndNext(input) {
+  const [word, meaning] = questions[current];
+  if (input === meaning) {
+    correctAnswers.push({ word, meaning });
+  } else {
+    wrongAnswers.push({ word, meaning, input });
+  }
+  current++;
+  loadQuestion();
+}
+
+function togglePause() {
+  isPaused = !isPaused;
+  const overlay = document.getElementById('pauseOverlay');
+  const btn = document.getElementById('pauseBtn');
+  const inputEl = document.getElementById('answerInput');
+  if (isPaused) {
+    overlay.classList.add('show'); btn.classList.add('paused'); btn.textContent = '계속하기'; inputEl.disabled = true;
+  } else {
+    overlay.classList.remove('show'); btn.classList.remove('paused'); btn.textContent = '일시정지';
+    inputEl.disabled = false; inputEl.focus();
+  }
+}
+
+function switchTab(tab) {
+  const isWrong = tab === 'wrong';
+  document.getElementById('tabWrongBtn').classList.toggle('active', isWrong);
+  document.getElementById('tabCorrectBtn').classList.toggle('active', !isWrong);
+  document.getElementById('panelWrong').classList.toggle('active', isWrong);
+  document.getElementById('panelCorrect').classList.toggle('active', !isWrong);
+}
+
+function endQuiz() {
+  clearInterval(timerInterval);
+  showScreen('resultScreen');
+
+  const correct = correctAnswers.length;
+  const pct = Math.round((correct / totalQ) * 100);
+  document.getElementById('scoreNum').textContent = correct;
+  document.getElementById('scoreTotal').textContent = `/ ${totalQ}`;
+  document.getElementById('scorePct').textContent = `정답률 ${pct}%`;
+  document.getElementById('wrongCount').textContent = `(${wrongAnswers.length})`;
+  document.getElementById('correctCount').textContent = `(${correctAnswers.length})`;
+
+  // 오답 리스트 — 내 답(취소선) + 정답 둘 다 표시
+  const wList = document.getElementById('wrongList');
+  wList.innerHTML = '';
+  if (wrongAnswers.length === 0) {
+    wList.innerHTML = '<li class="empty-msg">오답 없음 🎉</li>';
+  } else {
+    wrongAnswers.forEach(({ word, meaning, input }) => {
+      const myAns = input
+        ? `<span class="item-mine">${esc(input)}</span>`
+        : `<span class="item-skipped">미입력</span>`;
+      wList.innerHTML += `
+        <li class="result-item wrong-item">
+          <span class="item-word">${esc(word)}</span>
+          <div class="item-row"><span class="item-label">내 답</span>${myAns}</div>
+          <div class="item-row"><span class="item-label">정답</span><span class="item-correct">${esc(meaning)}</span></div>
+        </li>`;
+    });
+  }
+
+  // 정답 리스트
+  const cList = document.getElementById('correctList');
+  cList.innerHTML = '';
+  if (correctAnswers.length === 0) {
+    cList.innerHTML = '<li class="empty-msg">정답 없음</li>';
+  } else {
+    correctAnswers.forEach(({ word, meaning }) => {
+      cList.innerHTML += `
+        <li class="result-item correct-item">
+          <span class="item-word">${esc(word)}</span>
+          <span class="item-meaning">${esc(meaning)}</span>
+        </li>`;
+    });
+  }
+
+  switchTab('wrong');
+}
+
+function esc(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function restart() {
+  isPaused = false;
+  document.getElementById('pauseOverlay').classList.remove('show');
+  document.getElementById('pauseBtn').classList.remove('paused');
+  document.getElementById('pauseBtn').textContent = '일시정지';
+  showScreen('startScreen');
+}
+</script>
+</body>
+</html>
