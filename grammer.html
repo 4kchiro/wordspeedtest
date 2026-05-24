@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>문법 문제 · 연결 표현</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: #e8e6e0;
+    --text: #1a1917;
+    --text-muted: #8a8780;
+    --accent: #3d6b4f;
+    --accent-light: #eaf2ed;
+    --danger: #c0392b;
+    --danger-light: #fdf0ee;
+    --timer-full: #3d6b4f;
+    --timer-mid: #e67e22;
+    --timer-low: #c0392b;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .screen { display: none; width: 100%; max-width: 580px; }
+  .screen.active { display: block; }
+
+  /* ── START ── */
+  .start-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 48px 40px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .start-card h1 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.45rem; font-weight: 700;
+    letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .start-card .subtitle {
+    font-size: 0.78rem; color: var(--text-muted);
+    letter-spacing: 0.5px; margin-bottom: 32px;
+  }
+
+  /* 연결 표현 프리뷰 태그 */
+  .expr-preview {
+    display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+    margin-bottom: 28px;
+  }
+  .expr-tag {
+    font-family: 'Noto Serif JP', serif; font-size: 0.8rem;
+    background: var(--accent-light); color: var(--accent);
+    border-radius: 4px; padding: 3px 10px;
+  }
+
+  .section-label {
+    font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+    letter-spacing: 1.5px; text-align: left; margin-bottom: 10px; margin-top: 20px;
+  }
+  .input-group { text-align: left; margin-bottom: 12px; }
+  .input-group label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
+  .input-group input[type="number"] {
+    width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: 1rem; font-family: 'DM Mono', monospace; color: var(--text); background: var(--bg);
+    outline: none; transition: border-color 0.15s;
+  }
+  .input-group input[type="number"]:focus { border-color: var(--accent); }
+
+  .hint { font-size: 0.78rem; color: var(--text-muted); margin: 14px 0 22px; text-align: left; }
+  .hint span { font-family: 'DM Mono', monospace; font-weight: 500; }
+
+  .btn-start {
+    width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; font-size: 0.95rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-start:hover { opacity: 0.9; }
+  .btn-start:active { transform: scale(0.99); }
+
+  .back-link {
+    display: block; text-align: center; margin-top: 20px;
+    font-size: 0.78rem; color: var(--text-muted); text-decoration: none;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  /* ── QUIZ ── */
+  .quiz-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .progress-text { font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+  .btn-pause {
+    padding: 7px 16px; background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 0.85rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text); cursor: pointer; transition: background 0.15s; min-width: 76px;
+  }
+  .btn-pause:hover { background: var(--border); }
+  .btn-pause.paused { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .timer-bar-wrap { height: 5px; background: var(--border); border-radius: 99px; margin-bottom: 24px; overflow: hidden; }
+  .timer-bar { height: 100%; border-radius: 99px; transition: width 0.1s linear, background 0.3s; background: var(--timer-full); }
+
+  .question-type-badge {
+    display: inline-block; font-size: 0.7rem; font-weight: 700; font-family: 'DM Mono', monospace;
+    color: var(--accent); background: var(--accent-light); border-radius: 4px;
+    padding: 2px 8px; letter-spacing: 1px; margin-bottom: 12px;
+  }
+
+  .word-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 36px 36px 28px; box-shadow: var(--shadow); margin-bottom: 16px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  }
+  .question-text {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.2rem; font-weight: 400; line-height: 2;
+    letter-spacing: 0.5px; word-break: break-all; max-width: 100%;
+  }
+  .timer-count { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--text-muted); margin-top: 16px; }
+
+  /* 선택지 2열 */
+  .choices-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;
+  }
+  .choice-btn {
+    padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 8px;
+    background: var(--surface); cursor: pointer; text-align: left;
+    font-family: 'Noto Serif JP', serif; font-size: 1rem;
+    color: var(--text); transition: all 0.15s; display: flex; align-items: center; gap: 10px;
+  }
+  .choice-btn:hover { border-color: var(--accent); background: var(--accent-light); }
+  .choice-btn:disabled { cursor: not-allowed; opacity: 0.7; }
+  .choice-btn.selected-pending { border-color: var(--accent); background: var(--accent-light); }
+
+  .choice-num {
+    font-family: 'DM Mono', monospace; font-size: 0.75rem; font-weight: 700;
+    color: var(--text-muted); flex-shrink: 0;
+    width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .choice-btn.selected-pending .choice-num { border-color: var(--accent); color: var(--accent); }
+
+  .quiz-action-bar { display: flex; justify-content: flex-end; margin-top: 4px; }
+  .btn-skip {
+    padding: 11px 20px; background: var(--bg); color: var(--text-muted); border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 0.82rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .btn-skip:hover { background: var(--border); }
+
+  /* ── PAUSE ── */
+  .pause-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(247,246,243,0.88);
+    backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px; text-align: center;
+  }
+  .pause-overlay.show { display: flex; }
+  .pause-overlay h2 { font-size: 1.4rem; font-weight: 700; }
+  .pause-overlay p { color: var(--text-muted); font-size: 0.875rem; }
+  .btn-resume {
+    padding: 13px 32px; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; font-size: 0.95rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: opacity 0.15s; margin-top: 8px;
+  }
+  .btn-resume:hover { opacity: 0.88; }
+
+  /* ── RESULT ── */
+  .result-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 40px; box-shadow: var(--shadow);
+  }
+  .result-summary { text-align: center; margin-bottom: 32px; }
+  .result-summary h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; }
+  .score-display { display: inline-flex; align-items: baseline; gap: 4px; font-family: 'DM Mono', monospace; margin-bottom: 10px; }
+  .score-num { font-size: 3rem; font-weight: 500; color: var(--accent); line-height: 1; }
+  .score-total { font-size: 1.2rem; color: var(--text-muted); }
+  .score-pct { font-family: 'DM Mono', monospace; font-size: 0.9rem; color: var(--text-muted); }
+
+  .tab-bar { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 16px; }
+  .tab-btn {
+    padding: 9px 20px; border: none; background: none; font-size: 0.85rem; font-weight: 600;
+    font-family: 'Noto Sans KR', sans-serif; color: var(--text-muted); cursor: pointer;
+    border-bottom: 2.5px solid transparent; margin-bottom: -2px; transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn.tab-wrong.active { color: var(--danger); border-bottom-color: var(--danger); }
+  .tab-btn.tab-correct.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-panel { display: none; max-height: 400px; overflow-y: auto; margin-bottom: 24px; }
+  .tab-panel.active { display: block; }
+
+  .result-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+
+  .wrong-item {
+    padding: 14px 16px; border-radius: 8px; background: var(--danger-light); font-size: 0.83rem; line-height: 1.6;
+  }
+  .wrong-item-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .wrong-q-num {
+    font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--danger);
+    background: #f9d6d2; border-radius: 4px; padding: 1px 6px; flex-shrink: 0; margin-top: 2px;
+  }
+  .wrong-q-text { font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: var(--text); line-height: 1.6; }
+  .wrong-answers-row { display: flex; gap: 16px; font-size: 0.78rem; }
+  .item-label { color: var(--text-muted); min-width: 40px; }
+  .item-correct { color: var(--accent); font-weight: 600; }
+  .item-mine { color: var(--danger); }
+  .item-skipped { color: var(--text-muted); font-style: italic; }
+
+  .correct-item {
+    padding: 12px 16px; border-radius: 8px; background: var(--accent-light);
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .correct-q-num {
+    font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--accent);
+    background: #d0e8da; border-radius: 4px; padding: 1px 6px; flex-shrink: 0; margin-top: 2px;
+  }
+  .correct-detail { font-size: 0.82rem; }
+  .correct-q-text { font-family: 'Noto Serif JP', serif; font-size: 0.88rem; line-height: 1.5; margin-bottom: 4px; }
+  .correct-ans { color: var(--accent); font-weight: 600; }
+
+  .empty-msg { font-size: 0.82rem; color: var(--text-muted); font-style: italic; padding: 6px 0; }
+
+  .btn-restart {
+    width: 100%; padding: 13px; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; font-size: 0.9rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn-restart:hover { opacity: 0.88; }
+
+  @media (max-width: 480px) {
+    .start-card { padding: 32px 20px; }
+    .word-card { padding: 28px 20px 24px; }
+    .question-text { font-size: 1.05rem; }
+    .result-card { padding: 28px 20px; }
+    .choices-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── START ── -->
+<div id="startScreen" class="screen active">
+  <div class="start-card">
+    <h1>文法 · 연결 표현 퀴즈</h1>
+    <p class="subtitle">빈칸에 들어갈 연결 표현을 고르세요</p>
+
+    <div class="expr-preview" id="exprPreview"></div>
+
+    <div class="section-label">문제 설정</div>
+    <div class="input-group">
+      <label>풀 문제 수</label>
+      <input type="number" id="countInput" min="1" value="10" placeholder="예: 10">
+    </div>
+    <div class="input-group">
+      <label>문제당 제한 시간 (초) — 0 입력 시 무제한</label>
+      <input type="number" id="timerInput" min="0" max="300" value="0" placeholder="0 = 무제한">
+    </div>
+    <p class="hint">전체 문제 수: <span id="totalCount">0</span>개</p>
+    <button class="btn-start" onclick="startQuiz()">시작하기</button>
+    <a class="back-link" href="index.html">← 홈으로</a>
+  </div>
+</div>
+
+<!-- ── QUIZ ── -->
+<div id="quizScreen" class="screen">
+  <div class="quiz-header">
+    <span class="progress-text" id="progressText">1 / 10</span>
+    <button class="btn-pause" id="pauseBtn" onclick="togglePause()">일시정지</button>
+  </div>
+
+  <div class="timer-bar-wrap" id="timerBarWrap" style="display:none">
+    <div class="timer-bar" id="timerBar" style="width:100%"></div>
+  </div>
+
+  <div class="word-card">
+    <div class="question-type-badge">문법 · 연결 표현</div>
+    <div class="question-text" id="questionText"></div>
+    <div class="timer-count" id="timerCount" style="display:none"></div>
+  </div>
+
+  <div class="choices-grid" id="choicesGrid">
+    <button class="choice-btn" onclick="selectChoice(0)"><span class="choice-num">1</span><span class="choice-text" id="choice0"></span></button>
+    <button class="choice-btn" onclick="selectChoice(1)"><span class="choice-num">2</span><span class="choice-text" id="choice1"></span></button>
+    <button class="choice-btn" onclick="selectChoice(2)"><span class="choice-num">3</span><span class="choice-text" id="choice2"></span></button>
+    <button class="choice-btn" onclick="selectChoice(3)"><span class="choice-num">4</span><span class="choice-text" id="choice3"></span></button>
+  </div>
+
+  <div class="quiz-action-bar">
+    <button class="btn-skip" onclick="skipQuestion()">건너뛰기</button>
+  </div>
+</div>
+
+<!-- ── PAUSE OVERLAY ── -->
+<div class="pause-overlay" id="pauseOverlay">
+  <h2>일시정지</h2>
+  <p>퀴즈가 멈춰 있습니다</p>
+  <button class="btn-resume" onclick="togglePause()">계속하기</button>
+</div>
+
+<!-- ── RESULT ── -->
+<div id="resultScreen" class="screen">
+  <div class="result-card">
+    <div class="result-summary">
+      <h2>결과</h2>
+      <div class="score-display">
+        <span class="score-num" id="scoreNum">0</span>
+        <span class="score-total" id="scoreTotal">/ 0</span>
+      </div>
+      <div class="score-pct" id="scorePct"></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn tab-wrong active" id="tabWrongBtn" onclick="switchTab('wrong')">오답 <span id="wrongCount"></span></button>
+      <button class="tab-btn tab-correct" id="tabCorrectBtn" onclick="switchTab('correct')">정답 <span id="correctCount"></span></button>
+    </div>
+
+    <div class="tab-panel active" id="panelWrong">
+      <ul class="result-list" id="wrongList"></ul>
+    </div>
+    <div class="tab-panel" id="panelCorrect">
+      <ul class="result-list" id="correctList"></ul>
+    </div>
+
+    <button class="btn-restart" onclick="restart()">다시 시작</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// GRAMMAR_DATA 형식: [번호, 문장(빈칸=_______), 정답]
+//
+// ── 스프레드시트 D열 데이터 생성 수식 (D2 기준) ──
+// =A2&","&""""&SUBSTITUTE(B2,"""","""""")&""""&","&""""&C2&""""
+//
+// 출력 예시 (A열=1, B열=문장, C열=だけ):
+// 1,"彼女は野菜_______食べて、肉は全然食べません。","だけ"
+//
+// D열 전체를 복사해 아래 GRAMMAR_DATA 배열 안에 붙여넣으면 됩니다.
+// 각 행을 대괄호 [ ] 로 감싸고, 행 사이에 쉼표를 넣으세요.
+// ════════════════════════════════════════════════════════════════
+const GRAMMAR_DATA = [
+  [1,"彼女は野菜_______食べて、肉は全然食べません。","だけ"],
+[2,"あと少し_______で試験が終わります。","だけ"],
+[3,"最近、彼は甘いもの_______食べていて、体に悪いと思います。","ばかり"],
+[4,"引っ越してきた_______なので、まだ近所のことがよくわかりません。","ばかり"],
+[5,"子ども_______が公園で楽しそうに遊んでいます。","たち"],
+[6,"先生_______は会議室に集まってください。","たち"],
+[7,"このままのペース_______、締め切りに間に合わないかもしれません。","だと"],
+[8,"彼が本当のことを言っている_______、信じてあげたいです。","だと"],
+[9,"空が暗くなってきたから、もうすぐ雨が降る_______しれません。","かも"],
+[10,"田中さんはもう家に帰った_______しれないので、電話してみます。","かも"],
+[11,"財布を家に忘れました。_______、バスに乗れなくて遅刻してしまいました。","それで"],
+[12,"昨日から熱があります。_______、今日は学校を休むことにしました。","それで"],
+[13,"_______、次の話題に移りましょう。","では"],
+[14,"明日の集合場所は駅前_______どうでしょうか。","では"],
+[15,"毎日練習しました。_______、試合には負けてしまいました。","しかし"],
+[16,"値段は少し高いです。_______、品質はとても良いと思います。","しかし"],
+[17,"このレストランは料理がおいしいです。_______、値段も手頃なので人気があります。","また"],
+[18,"来週_______再来週に、もう一度話し合いの場を設けましょう。","また"],
+[19,"参加する場合は、メール_______電話でご連絡ください。","または"],
+[20,"電車_______バスで行くことができます。どちらも便利です。","または"],
+[21,"この町は交通が便利です。_______、買い物できる場所も多くて住みやすいです。","それに"],
+[22,"彼女は料理が上手です。_______、片付けも丁寧にしてくれます。","それに"],
+[23,"まず野菜を切ります。_______、フライパンで炒めてください。","それから"],
+[24,"宿題を終わらせました。_______、友達と公園で遊びました。","それから"],
+[25,"彼は父の弟の息子です。_______、私のいとこにあたります。","つまり"],
+[26,"今月は収入より支出が多かったです。_______、赤字になったということです。","つまり"],
+[27,"メールを送ったので、もう田中さんに届いている_______です。","はず"],
+[28,"この電車は8時に出発する_______なのに、まだ来ていません。","はず"],
+[29,"駅からこのビルまで歩いて_______着きますよ。5分もかかりません。","すぐ"],
+[30,"準備ができたら_______連絡してください。待っています。","すぐ"],
+[31,"子育てと仕事を両立するのは_______なことだと思います。","大変"],
+[32,"昨日は_______お世話になりました。ありがとうございました。","大変"],
+[33,"彼女は毎日練習しているから、_______上手になるよ。","きっと"],
+[34,"こんなに頑張ったのだから、_______いい結果が出ると思います。","きっと"],
+[35,"この料理はおいしいけど、塩を_______加えたほうがいいかもしれません。","もっと"],
+[36,"時間があれば、_______ゆっくり話したかったです。","もっと"],
+[37,"子どものころから_______音楽が好きで、今もよく聴いています。","ずっと"],
+[38,"彼のことを_______待っていたのに、結局来ませんでした。","ずっと"],
+[39,"すみません、_______聞いてもいいですか。道に迷ってしまって。","ちょっと"],
+[40,"この荷物は_______重いので、置いておいていいですか。","ちょっと"],
+[41,"もう12時なのに、弟は_______起きていません。","まだ"],
+[42,"この問題は難しくて、_______答えが見つかっていません。","まだ"],
+[43,"外が騒がしいですね。何かあった_______ですね。","みたい"],
+[44,"彼女はまるで人形_______にきれいだと思います。","みたい"],
+[45,"風邪をひかない_______に、毎日手を洗ってください。","よう"],
+[46,"先生の説明を聞いて、やっとわかった_______な気がします。","よう"],
+[47,"電車_______バスのほうが、この時間は早く着きます。","より"],
+[48,"思っていた_______ずっと難しい試験でした。","より"],
+[49,"電気をつけた_______寝てしまいました。","まま"],
+[50,"この書類は英語の_______提出してください。翻訳は不要です。","まま"],
+[51,"この映画は長い。_______、内容がとても面白かったです。","だけど"],
+[52,"彼のことは好き_______、付き合うのは難しいと思っています。","だけど"],
+[53,"_______明日雨が降ったら、試合は中止になります。","もし"],
+[54,"_______わからないことがあれば、いつでも聞いてください。","もし"],
+[55,"昨日のコンサートは_______感動的で、涙が出てきました。","とても"],
+[56,"この荷物は重くて、一人では_______持てません。","とても"],
+[57,"明日は大事な発表があります。_______、今夜はしっかり準備します。","だから"],
+[58,"バスが来なかったんです。_______遅刻してしまいました。","だから"],
+[59,"_______時間がないので、急いで出発しましょう。","もう"],
+[60,"こんなに疲れたら、_______歩けないと思います。","もう"],
+[61,"この店は値段が高い_______、味はそれほどでもないと思います。","けど"],
+[62,"行きたい_______、仕事があって行けそうにありません。","けど"],
+[63,"この映画は泣ける_______感動的な作品だと聞きました。","ほど"],
+[64,"練習すれば練習する_______、上手になっていきます。","ほど"],
+[65,"今日は田中さんが休みなので、私が_______発表します。","代わりに"],
+[66,"バスで行く_______、少し遠いけど歩いて行くことにしました。","代わりに"],
+[67,"公園には子どもたちが_______遊んでいました。","いっぱい"],
+[68,"今日は_______食べてしまったので、夜は軽くします。","いっぱい"],
+[69,"健康を守る_______に、毎朝30分歩くようにしています。","ため"],
+[70,"大雨の_______に、試合が中止になってしまいました。","ため"],
+[71,"財布がない。_______どこに置いたんだろう。","いったい"],
+[72,"あの人は_______何者なんですか。毎日ここに来ていますよね。","いったい"],
+[73,"謝るより、_______どうすれば解決できるかを考えてほしいです。","むしろ"],
+[74,"薬を飲んでも良くならないなら、_______休んだほうがいいと思います。","むしろ"],
+[75,"このコーヒーは_______おいしくないので、もう頼みません。","あまり"],
+[76,"嬉しさの_______、思わず声を上げてしまいました。","あまり"],
+[77,"毎日少し_______単語を覚えていけば、必ず上達します。","ずつ"],
+[78,"参加者に資料を一枚_______配ってください。","ずつ"],
+[79,"彼は10年間毎日練習してきた。うまいのは当然の_______だ。","わけ"],
+[80,"知らなかったとはいえ、ルールを破っていい_______ではありません。","わけ"],
+];
+
+// ════════════════════════════════════════════════════════════════
+// 오답 제외 규칙 정의
+// key: 정답, value: 오답으로 쓰면 안 되는 단어 목록
+// ════════════════════════════════════════════════════════════════
+const EXCLUSION_RULES = {
+  // だけど ↔ けど 상호 금지
+  "だけど": ["けど"],
+  "けど":   ["だけど"],
+  // それで ↔ だから 상호 금지
+  "それで": ["だから"],
+  "だから": ["それで"],
+  // よう → みたい 금지 (단방향)
+  "よう":   ["みたい"],
+};
+
+// 정답 풀 (GRAMMAR_DATA의 C열 고유값)
+const ALL_ANSWERS = [...new Set(GRAMMAR_DATA.map(d => d[2]))];
+
+// ────────────────────────────────────────────────────────────
+// 오답 3개 생성 (제외 규칙 + 정답 중복 방지)
+function pickWrongChoices(correct) {
+  const excluded = new Set([correct, ...(EXCLUSION_RULES[correct] || [])]);
+  const pool = ALL_ANSWERS.filter(a => !excluded.has(a));
+  const shuffled = shuffle(pool);
+  return shuffled.slice(0, 3);
+}
+
+// 선택지 4개 셔플 + 정답 위치 기록
+function buildShuffledChoices(correct) {
+  const wrongs = pickWrongChoices(correct);
+  const allChoices = shuffle([correct, ...wrongs]);
+  const shuffledAnswer = allChoices.indexOf(correct) + 1; // 1-based
+  return { shuffledChoices: allChoices, shuffledAnswer };
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── 상태 ──
+let TIMER_SEC = 0;
+let questions = [];   // { row, shuffledChoices, shuffledAnswer }
+let answers   = [];   // { ...question, chosen }
+let current   = 0, totalQ = 0;
+let timerInterval = null, timeLeft = 0, isPaused = false, answered = false;
+
+// ── 초기화 ──
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('totalCount').textContent = GRAMMAR_DATA.length;
+  // 연결 표현 태그 표시 (고유값 최대 20개)
+  const preview = document.getElementById('exprPreview');
+  ALL_ANSWERS.slice(0, 20).forEach(a => {
+    const span = document.createElement('span');
+    span.className = 'expr-tag';
+    span.textContent = a;
+    preview.appendChild(span);
+  });
+  if (ALL_ANSWERS.length > 20) {
+    const more = document.createElement('span');
+    more.className = 'expr-tag';
+    more.style.opacity = '0.5';
+    more.textContent = `+${ALL_ANSWERS.length - 20}`;
+    preview.appendChild(more);
+  }
+  document.getElementById('countInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startQuiz();
+  });
+});
+
+function startQuiz() {
+  const n = parseInt(document.getElementById('countInput').value);
+  if (!n || n < 1) { alert('문제 수를 입력해주세요.'); return; }
+  if (n > GRAMMAR_DATA.length) {
+    alert(`전체 문제 수는 ${GRAMMAR_DATA.length}개입니다.\n${GRAMMAR_DATA.length} 이하로 입력해주세요.`);
+    return;
+  }
+  const t = parseInt(document.getElementById('timerInput').value);
+  if (isNaN(t) || t < 0) { alert('제한 시간을 올바르게 입력해주세요.'); return; }
+  TIMER_SEC = t;
+  totalQ = n;
+
+  const rawQ = shuffle(GRAMMAR_DATA).slice(0, n);
+  questions = rawQ.map(row => {
+    const { shuffledChoices, shuffledAnswer } = buildShuffledChoices(row[2]);
+    return { row, shuffledChoices, shuffledAnswer };
+  });
+  answers = [];
+  current = 0;
+  showScreen('quizScreen');
+  loadQuestion();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function loadQuestion() {
+  if (current >= totalQ) { endQuiz(); return; }
+  answered = false;
+
+  const { row, shuffledChoices } = questions[current];
+  // [번호, 문장, 정답] — 문장 원문 그대로 표시
+  document.getElementById('questionText').textContent = row[1];
+  document.getElementById('progressText').textContent = `${current + 1} / ${totalQ}`;
+
+  const grid = document.getElementById('choicesGrid');
+  const btns = grid.querySelectorAll('.choice-btn');
+  btns.forEach((btn, i) => {
+    btn.className = 'choice-btn';
+    btn.disabled = false;
+    btn.querySelector('.choice-num').textContent = i + 1;
+    btn.querySelector('.choice-text').textContent = shuffledChoices[i];
+  });
+
+  if (TIMER_SEC > 0) {
+    document.getElementById('timerBarWrap').style.display = '';
+    document.getElementById('timerCount').style.display = '';
+    startTimer();
+  } else {
+    document.getElementById('timerBarWrap').style.display = 'none';
+    document.getElementById('timerCount').style.display = 'none';
+  }
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timeLeft = TIMER_SEC;
+  updateTimerUI();
+  timerInterval = setInterval(() => {
+    if (isPaused) return;
+    timeLeft -= 0.1;
+    if (timeLeft <= 0) {
+      timeLeft = 0; updateTimerUI(); clearInterval(timerInterval);
+      recordAnswer(-1);
+    } else { updateTimerUI(); }
+  }, 100);
+}
+
+function updateTimerUI() {
+  const pct = (timeLeft / TIMER_SEC) * 100;
+  const bar = document.getElementById('timerBar');
+  bar.style.width = pct + '%';
+  bar.style.background = pct > 60 ? 'var(--timer-full)' : pct > 30 ? 'var(--timer-mid)' : 'var(--timer-low)';
+  document.getElementById('timerCount').textContent = Math.ceil(timeLeft) + '초';
+}
+
+function selectChoice(idx) {
+  if (isPaused || answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  const btns = document.getElementById('choicesGrid').querySelectorAll('.choice-btn');
+  btns.forEach(btn => btn.disabled = true);
+  btns[idx].classList.add('selected-pending');
+  recordAnswer(idx + 1);
+}
+
+function skipQuestion() {
+  if (isPaused || answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  recordAnswer(-1);
+}
+
+function recordAnswer(chosen) {
+  answers.push({ ...questions[current], chosen });
+  setTimeout(() => { current++; loadQuestion(); }, 180);
+}
+
+function togglePause() {
+  isPaused = !isPaused;
+  const overlay = document.getElementById('pauseOverlay');
+  const btn = document.getElementById('pauseBtn');
+  if (isPaused) {
+    overlay.classList.add('show'); btn.classList.add('paused'); btn.textContent = '계속하기';
+  } else {
+    overlay.classList.remove('show'); btn.classList.remove('paused'); btn.textContent = '일시정지';
+  }
+}
+
+function switchTab(tab) {
+  const isWrong = tab === 'wrong';
+  document.getElementById('tabWrongBtn').classList.toggle('active', isWrong);
+  document.getElementById('tabCorrectBtn').classList.toggle('active', !isWrong);
+  document.getElementById('panelWrong').classList.toggle('active', isWrong);
+  document.getElementById('panelCorrect').classList.toggle('active', !isWrong);
+}
+
+function endQuiz() {
+  clearInterval(timerInterval);
+  showScreen('resultScreen');
+
+  const correctList = answers.filter(a => a.chosen === a.shuffledAnswer);
+  const wrongList   = answers.filter(a => a.chosen !== a.shuffledAnswer);
+  const pct = Math.round((correctList.length / totalQ) * 100);
+
+  document.getElementById('scoreNum').textContent = correctList.length;
+  document.getElementById('scoreTotal').textContent = `/ ${totalQ}`;
+  document.getElementById('scorePct').textContent = `정답률 ${pct}%`;
+  document.getElementById('wrongCount').textContent = `(${wrongList.length})`;
+  document.getElementById('correctCount').textContent = `(${correctList.length})`;
+
+  // 오답
+  const wEl = document.getElementById('wrongList');
+  wEl.innerHTML = '';
+  if (wrongList.length === 0) {
+    wEl.innerHTML = '<li class="empty-msg">오답 없음 🎉</li>';
+  } else {
+    wrongList.forEach(({ row, shuffledChoices, shuffledAnswer, chosen }) => {
+      const myAns = chosen >= 1
+        ? `<span class="item-mine">➜ ${chosen}번 「${esc(shuffledChoices[chosen-1])}」</span>`
+        : `<span class="item-skipped">건너뜀 / 시간초과</span>`;
+      wEl.innerHTML += `
+        <li class="wrong-item">
+          <div class="wrong-item-header">
+            <span class="wrong-q-num">#${row[0]}</span>
+            <span class="wrong-q-text">${esc(row[1])}</span>
+          </div>
+          <div class="wrong-answers-row"><span class="item-label">내 답</span>${myAns}</div>
+          <div class="wrong-answers-row">
+            <span class="item-label">정답</span>
+            <span class="item-correct">「${esc(shuffledChoices[shuffledAnswer-1])}」</span>
+          </div>
+        </li>`;
+    });
+  }
+
+  // 정답
+  const cEl = document.getElementById('correctList');
+  cEl.innerHTML = '';
+  if (correctList.length === 0) {
+    cEl.innerHTML = '<li class="empty-msg">정답 없음</li>';
+  } else {
+    correctList.forEach(({ row, shuffledChoices, shuffledAnswer }) => {
+      cEl.innerHTML += `
+        <li class="correct-item">
+          <span class="correct-q-num">#${row[0]}</span>
+          <div class="correct-detail">
+            <div class="correct-q-text">${esc(row[1])}</div>
+            <span class="correct-ans">「${esc(shuffledChoices[shuffledAnswer-1])}」</span>
+          </div>
+        </li>`;
+    });
+  }
+
+  switchTab('wrong');
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function restart() {
+  isPaused = false;
+  clearInterval(timerInterval);
+  document.getElementById('pauseOverlay').classList.remove('show');
+  document.getElementById('pauseBtn').classList.remove('paused');
+  document.getElementById('pauseBtn').textContent = '일시정지';
+  showScreen('startScreen');
+}
+</script>
+</body>
+</html>
